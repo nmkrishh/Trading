@@ -576,32 +576,39 @@ Your response rules:
 ${buildCtx(a)}`;
 
   try {
-    const resp = await puter.ai.chat(question, { model: 'claude-opus-4-6', system_prompt: sys });
+    // puter.ai.chat with messages array — system context injected as first message
+    const messages = [
+      {
+        role: 'user',
+        content: `[SYSTEM CONTEXT — follow these instructions for all replies]\n\n${sys}\n\n[END SYSTEM CONTEXT]\n\nUser question: ${question}`
+      }
+    ];
 
-    // Handle all possible response shapes from puter.ai.chat
+    const resp = await puter.ai.chat(messages, { model: 'gpt-4o-mini' });
+
+    // Parse all possible puter response shapes
     let reply = '';
     if (typeof resp === 'string') {
       reply = resp;
     } else if (resp?.message?.content) {
-      reply = typeof resp.message.content === 'string'
-        ? resp.message.content
-        : resp.message.content.map(c => c.text||'').join('');
+      const c = resp.message.content;
+      reply = typeof c === 'string' ? c : Array.isArray(c) ? c.map(x=>x.text||'').join('') : String(c);
     } else if (resp?.content) {
-      reply = Array.isArray(resp.content)
-        ? resp.content.map(c => c.text||'').join('')
-        : resp.content;
+      const c = resp.content;
+      reply = typeof c === 'string' ? c : Array.isArray(c) ? c.map(x=>x.text||'').join('') : String(c);
     } else if (resp?.text) {
       reply = resp.text;
+    } else if (resp?.choices?.[0]?.message?.content) {
+      reply = resp.choices[0].message.content;
     } else {
-      // Last resort — stringify and show raw
       reply = JSON.stringify(resp);
     }
 
-    return { reply: reply || 'No response received. Please try again.', a };
+    return { reply: reply.trim() || 'Empty response — please try again.', a };
   } catch(e) {
     console.error('AI error:', e);
     return {
-      reply: `❌ AI error: **${e.message}**\n\nTroubleshooting:\n• Make sure you're signed into Puter\n• Try signing out and back in\n• Check your internet connection`,
+      reply: `❌ AI error: **${e.message}**\n\nFix:\n• Confirm you're signed into Puter\n• Sign out → sign back in\n• Check internet connection`,
       a
     };
   }
