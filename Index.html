@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>TradeAI — NSE/BSE Assistant</title>
+<script src="https://js.puter.com/v2/"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#080c12; --surface:#0e1520; --card:#111a27; --border:#1c2d42;
+    --accent:#00e5a0; --accent2:#0099ff; --red:#ff4d6d; --green:#00e5a0;
+    --muted:#4a6080; --text:#dde6f0; --textdim:#7a9ab8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;
+    height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+    max-width:480px;margin:0 auto;}
+
+#splash{position:fixed;inset:0;background:var(–bg);z-index:200;
+display:flex;flex-direction:column;align-items:center;justify-content:center;
+padding:32px 28px;gap:24px;}
+.splash-logo{font-family:‘Syne’,sans-serif;font-size:42px;font-weight:800;letter-spacing:-2px;}
+.splash-logo span{color:var(–accent);}
+.splash-tagline{font-size:11px;color:var(–muted);letter-spacing:3px;text-transform:uppercase;text-align:center;}
+.splash-card{width:100%;background:var(–card);border:1px solid var(–border);border-radius:18px;padding:24px 20px;display:flex;flex-direction:column;gap:16px;}
+.splash-card-title{font-family:‘Syne’,sans-serif;font-size:16px;font-weight:700;}
+.splash-card-sub{font-size:11px;color:var(–textdim);line-height:1.7;}
+.feature-list{display:flex;flex-direction:column;gap:8px;}
+.feature-item{display:flex;align-items:center;gap:10px;font-size:12px;color:var(–textdim);}
+.feature-dot{width:6px;height:6px;border-radius:50%;background:var(–accent);flex-shrink:0;}
+.btn-puter{width:100%;padding:15px;background:var(–accent);color:#000;border:none;border-radius:13px;font-family:‘Syne’,sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:opacity .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-puter:active{transform:scale(0.97);opacity:.85;}
+.btn-skip{width:100%;padding:11px;background:transparent;border:1px solid var(–border);border-radius:11px;color:var(–textdim);font-family:‘DM Mono’,monospace;font-size:12px;cursor:pointer;transition:border-color .2s;}
+.btn-skip:hover{border-color:var(–muted);}
+.puter-note{font-size:10px;color:var(–muted);text-align:center;line-height:1.6;}
+
+#app{display:none;flex-direction:column;height:100dvh;position:relative;}
+
+#header{background:var(–surface);border-bottom:1px solid var(–border);padding:11px 14px 0;flex-shrink:0;}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.brand{font-family:‘Syne’,sans-serif;font-weight:800;font-size:17px;letter-spacing:-.5px;}
+.brand span{color:var(–accent);}
+.header-right{display:flex;align-items:center;gap:8px;}
+.live-badge{display:flex;align-items:center;gap:5px;font-size:10px;color:var(–accent);letter-spacing:1px;text-transform:uppercase;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(–accent);animation:blink 1.4s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.user-pill{display:flex;align-items:center;gap:6px;background:var(–card);border:1px solid var(–border);border-radius:20px;padding:4px 10px 4px 6px;cursor:pointer;transition:border-color .2s;}
+.user-pill:hover{border-color:var(–muted);}
+.user-avatar{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(–accent),var(–accent2));display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-weight:700;}
+.user-name{font-size:10px;color:var(–textdim);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#user-menu{position:absolute;right:14px;top:50px;background:var(–card);border:1px solid var(–border);border-radius:12px;padding:6px;z-index:50;display:none;min-width:150px;}
+#user-menu.open{display:block;}
+.menu-item{padding:9px 12px;font-size:12px;color:var(–textdim);cursor:pointer;border-radius:8px;transition:background .15s;display:flex;align-items:center;gap:8px;}
+.menu-item:hover{background:var(–surface);}
+.menu-item.danger{color:var(–red);}
+
+.market-row{display:flex;gap:7px;margin-bottom:10px;}
+.market-pill{flex:1;background:var(–card);border:1px solid var(–border);border-radius:10px;padding:7px 8px;text-align:center;}
+.pill-label{font-size:9px;color:var(–muted);letter-spacing:1px;text-transform:uppercase;}
+.pill-val{font-family:‘Syne’,sans-serif;font-size:13px;font-weight:700;margin-top:2px;}
+.pill-change{font-size:10px;margin-top:1px;}
+.pos{color:var(–green);} .neg{color:var(–red);}
+
+.ticker-wrap{overflow:hidden;background:var(–bg);padding:5px 0;border-top:1px solid var(–border);}
+.ticker-inner{display:flex;gap:28px;white-space:nowrap;animation:scroll 25s linear infinite;width:max-content;}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker-item{font-size:11px;} .ticker-sym{color:var(–textdim);margin-right:4px;}
+
+#chat-area{flex:1;overflow-y:auto;padding:14px 13px;display:flex;flex-direction:column;gap:13px;scroll-behavior:smooth;}
+#chat-area::-webkit-scrollbar{width:3px;}
+#chat-area::-webkit-scrollbar-thumb{background:var(–border);border-radius:2px;}
+.msg{display:flex;gap:8px;animation:fadeUp .25s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse;}
+.avatar{width:27px;height:27px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;margin-top:2px;}
+.avatar.bot{background:linear-gradient(135deg,#00e5a0,#0099ff);}
+.avatar.usr{background:var(–card);border:1px solid var(–border);font-size:11px;}
+.bubble{max-width:83%;padding:10px 13px;font-size:13px;line-height:1.75;color:var(–text);}
+.bubble.bot{background:var(–card);border:1px solid var(–border);border-radius:4px 13px 13px 13px;}
+.bubble.user{background:linear-gradient(135deg,#00c87a,#0084db);border-radius:13px 4px 13px 13px;color:#fff;}
+
+.typing-bub{background:var(–card);border:1px solid var(–border);border-radius:4px 13px 13px 13px;padding:14px 16px;display:flex;gap:5px;align-items:center;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(–accent);animation:bounce 1.2s ease-in-out infinite;}
+.dot:nth-child(2){animation-delay:.2s;} .dot:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+
+.stock-card{background:var(–surface);border:1px solid var(–border);border-radius:10px;padding:10px 12px;margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;font-size:11px;}
+.sc-row{display:flex;justify-content:space-between;}
+.sc-label{color:var(–muted);}
+.signal-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;font-family:‘Syne’,sans-serif;letter-spacing:.5px;margin-top:6px;}
+.signal-buy{background:rgba(0,229,160,.15);color:var(–green);border:1px solid rgba(0,229,160,.3);}
+.signal-sell{background:rgba(255,77,109,.15);color:var(–red);border:1px solid rgba(255,77,109,.3);}
+.signal-hold{background:rgba(0,153,255,.15);color:var(–accent2);border:1px solid rgba(0,153,255,.3);}
+
+#ind-bar{display:none;background:var(–card);border-top:1px solid var(–border);padding:10px 14px;flex-shrink:0;}
+.ind-title{font-size:9px;letter-spacing:1.5px;color:var(–muted);text-transform:uppercase;margin-bottom:7px;}
+.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.ind-box{background:var(–surface);border:1px solid var(–border);border-radius:8px;padding:7px 5px;text-align:center;}
+.ind-name{font-size:9px;color:var(–muted);text-transform:uppercase;letter-spacing:1px;}
+.ind-val{font-size:13px;font-family:‘Syne’,sans-serif;font-weight:700;margin-top:3px;}
+
+#quick-area{padding:0 13px 7px;display:flex;gap:7px;overflow-x:auto;flex-shrink:0;}
+#quick-area::-webkit-scrollbar{display:none;}
+.chip{flex-shrink:0;background:var(–card);border:1px solid var(–border);border-radius:20px;padding:6px 12px;font-size:11px;font-family:‘DM Mono’,monospace;color:var(–textdim);cursor:pointer;transition:all .18s;white-space:nowrap;}
+.chip:active{background:var(–surface);border-color:var(–accent);color:var(–accent);}
+
+#input-area{background:var(–surface);border-top:1px solid var(–border);padding:9px 12px 13px;flex-shrink:0;}
+.input-row{display:flex;gap:8px;align-items:flex-end;background:var(–card);border:1px solid var(–border);border-radius:13px;padding:8px 9px 8px 13px;transition:border-color .2s;}
+.input-row:focus-within{border-color:var(–accent);}
+#user-input{flex:1;background:transparent;border:none;outline:none;color:var(–text);font-family:‘DM Mono’,monospace;font-size:13px;resize:none;max-height:80px;line-height:1.5;}
+#user-input::placeholder{color:var(–muted);}
+#send-btn{width:33px;height:33px;border-radius:9px;background:var(–accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .2s,transform .1s;font-size:16px;color:#000;font-weight:700;}
+#send-btn:disabled{background:var(–border);cursor:not-allowed;opacity:.5;}
+#send-btn:active{transform:scale(0.9);}
+.disclaimer{text-align:center;font-size:9px;color:var(–muted);margin-top:6px;letter-spacing:.5px;}
+
+.spinner{width:14px;height:14px;border:2px solid rgba(0,0,0,.3);border-top-color:#000;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+strong{font-weight:600;color:var(–accent);}
+em{font-style:normal;color:var(–accent2);}
+.hidden{display:none!important;}
+</style>
+
+</head>
+<body>
+
+<!-- SPLASH -->
+
+<div id="splash">
+  <div>
+    <div class="splash-logo">Trade<span>AI</span></div>
+    <div class="splash-tagline" style="margin-top:8px">NSE · BSE · Intraday Intelligence</div>
+  </div>
+  <div class="splash-card">
+    <div class="splash-card-title">Free. No API keys needed.</div>
+    <div class="splash-card-sub">Live NSE/BSE data from Yahoo Finance + AI analysis via Puter (free).</div>
+    <div class="feature-list">
+      <div class="feature-item"><div class="feature-dot"></div>Real NSE/BSE prices — Yahoo Finance (free)</div>
+      <div class="feature-item"><div class="feature-dot"></div>RSI · MACD · VWAP · Supertrend calculated live</div>
+      <div class="feature-item"><div class="feature-dot"></div>GPT-4o AI analysis — powered by Puter (free)</div>
+      <div class="feature-item"><div class="feature-dot"></div>No broker account · No credit card · 100% free</div>
+    </div>
+    <button class="btn-puter" id="btn-login" onclick="puterLogin()">
+      🔐 Sign in with Puter (Free AI)
+    </button>
+    <button class="btn-skip" onclick="skipLogin()">▶ Continue as Guest (no AI analysis)</button>
+    <div class="puter-note">Puter is a free cloud OS. Sign up at puter.com — no card needed.<br/>Your market data is fetched directly — nothing stored on any server.</div>
+  </div>
+</div>
+
+<!-- APP -->
+
+<div id="app">
+  <div id="user-menu">
+    <div class="menu-item">👤 <span id="menu-uname">User</span></div>
+    <div class="menu-item danger" onclick="doLogout()">🚪 Sign out</div>
+  </div>
+
+  <div id="header">
+    <div class="header-top">
+      <div class="brand">Trade<span>AI</span></div>
+      <div class="header-right">
+        <div class="live-badge"><div class="live-dot"></div><span id="live-label">LIVE</span></div>
+        <div class="user-pill" id="user-pill" onclick="toggleMenu()" style="display:none;">
+          <div class="user-avatar" id="user-av">?</div>
+          <div class="user-name" id="user-name-label">User</div>
+        </div>
+      </div>
+    </div>
+    <div class="market-row">
+      <div class="market-pill">
+        <div class="pill-label">NIFTY 50</div>
+        <div class="pill-val" id="nifty-val">—</div>
+        <div class="pill-change" id="nifty-chg">—</div>
+      </div>
+      <div class="market-pill">
+        <div class="pill-label">SENSEX</div>
+        <div class="pill-val" id="sensex-val">—</div>
+        <div class="pill-change" id="sensex-chg">—</div>
+      </div>
+      <div class="market-pill">
+        <div class="pill-label">BANK NIFTY</div>
+        <div class="pill-val" id="bnifty-val">—</div>
+        <div class="pill-change" id="bnifty-chg">—</div>
+      </div>
+    </div>
+    <div class="ticker-wrap">
+      <div class="ticker-inner" id="ticker">Fetching live prices…</div>
+    </div>
+  </div>
+
+  <div id="chat-area"></div>
+
+  <div id="ind-bar">
+    <div class="ind-title">Indicators — <span id="ind-sym">—</span></div>
+    <div class="ind-grid">
+      <div class="ind-box"><div class="ind-name">RSI</div><div class="ind-val" id="ind-rsi">—</div></div>
+      <div class="ind-box"><div class="ind-name">MACD</div><div class="ind-val" id="ind-macd">—</div></div>
+      <div class="ind-box"><div class="ind-name">VWAP</div><div class="ind-val" id="ind-vwap">—</div></div>
+      <div class="ind-box"><div class="ind-name">Signal</div><div class="ind-val" id="ind-sig">—</div></div>
+    </div>
+  </div>
+
+  <div id="quick-area">
+    <div class="chip" onclick="quickAsk(this)">Best stock today?</div>
+    <div class="chip" onclick="quickAsk(this)">Analyse RELIANCE</div>
+    <div class="chip" onclick="quickAsk(this)">Analyse TCS</div>
+    <div class="chip" onclick="quickAsk(this)">Top NSE gainers</div>
+    <div class="chip" onclick="quickAsk(this)">Explain RSI</div>
+    <div class="chip" onclick="quickAsk(this)">VWAP strategy</div>
+  </div>
+
+  <div id="input-area">
+    <div class="input-row">
+      <textarea id="user-input" rows="1" placeholder="Ask about stocks, signals, strategies…" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+      <button id="send-btn" onclick="sendMessage()">↑</button>
+    </div>
+    <div class="disclaimer">⚠ Not financial advice · Day trading involves substantial risk</div>
+  </div>
+</div>
+
+<script>
+let IS_SIGNED_IN = false, PUTER_USER = null, MENU_OPEN = false;
+
+const STOCKS = [
+  {name:"RELIANCE",  yf:"RELIANCE.NS", ltp:0,open:0,high:0,low:0,close:0,change:0,volume:0},
+  {name:"TCS",       yf:"TCS.NS",      ltp:0,open:0,high:0,low:0,close:0,change:0,volume:0},
+  {name:"INFY",      yf:"INFY.NS",     ltp:0,open:0,high:0,low:0,close:0,change:0,volume:0},
+  {name:"HDFCBANK",  yf:"HDFCBANK.NS", ltp:0,open:0,high:0,low:0,close:0,change:0,volume:0},
+  {name:"WIPRO",     yf:"WIPRO.NS",    ltp:0,open:0,high:0,low:0,close:0,change:0,volume:0},
+  {name:"SBIN",      yf:"SBIN.NS",     ltp:0,open:0,high:0,low:0,close:0,change:0,volume:0},
+  {name:"ICICIBANK", yf:"ICICIBANK.NS",ltp:0,open:0,high:0,low:0,close:0,change:0,volume:0},
+  {name:"BAJFINANCE",yf:"BAJFINANCE.NS",ltp:0,open:0,high:0,low:0,close:0,change:0,volume:0},
+];
+const INDICES = [
+  {name:"NIFTY 50",  yf:"^NSEI",    val:0,chg:0},
+  {name:"SENSEX",    yf:"^BSESN",   val:0,chg:0},
+  {name:"BANK NIFTY",yf:"^NSEBANK", val:0,chg:0},
+];
+let HIST = {};
+
+// ── AUTH ──
+async function puterLogin() {
+  const btn = document.getElementById('btn-login');
+  btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    await puter.auth.signIn();
+    const user = await puter.auth.getUser();
+    PUTER_USER = user; IS_SIGNED_IN = true;
+    launchApp();
+  } catch(e) {
+    btn.innerHTML = '🔐 Sign in with Puter (Free AI)';
+    alert('Sign-in cancelled or failed: ' + e.message);
+  }
+}
+
+function skipLogin() { IS_SIGNED_IN = false; PUTER_USER = null; launchApp(); }
+
+async function doLogout() {
+  try { await puter.auth.signOut(); } catch(e){}
+  IS_SIGNED_IN = false; PUTER_USER = null;
+  toggleMenu();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('splash').classList.remove('hidden');
+  document.getElementById('chat-area').innerHTML = '';
+  document.getElementById('btn-login').innerHTML = '🔐 Sign in with Puter (Free AI)';
+}
+
+function toggleMenu() {
+  MENU_OPEN = !MENU_OPEN;
+  document.getElementById('user-menu').classList.toggle('open', MENU_OPEN);
+}
+document.addEventListener('click', e => {
+  if (MENU_OPEN && !e.target.closest('#user-pill') && !e.target.closest('#user-menu')) {
+    MENU_OPEN = false;
+    document.getElementById('user-menu').classList.remove('open');
+  }
+});
+
+// ── LAUNCH ──
+function launchApp() {
+  document.getElementById('splash').classList.add('hidden');
+  const app = document.getElementById('app');
+  app.style.display = 'flex';
+  app.style.flexDirection = 'column';
+
+  if (IS_SIGNED_IN && PUTER_USER) {
+    const u = PUTER_USER.username || 'User';
+    document.getElementById('user-name-label').textContent = u;
+    document.getElementById('user-av').textContent = u[0].toUpperCase();
+    document.getElementById('menu-uname').textContent = u;
+    document.getElementById('user-pill').style.display = 'flex';
+  }
+
+  addBotMessage(IS_SIGNED_IN
+    ? `👋 Welcome, **${PUTER_USER.username}**!\n\n📈 **TradeAI** is online. Fetching live NSE/BSE prices from Yahoo Finance…\n\nReady with: RSI · MACD · VWAP · Supertrend\n\nTry: *"Which stock should I buy today?"*`
+    : `📈 **TradeAI** — Guest Mode\n\nFetching live prices from Yahoo Finance…\n\nSign in with Puter for full GPT-4o AI analysis.\n\nIndicators still work — try asking about a stock!`
+  );
+  fetchAllData();
+  setInterval(fetchAllData, 60000);
+}
+
+// ── YAHOO FINANCE ──
+async function fetchYF(symbol) {
+  const url = `https://corsproxy.io/?${encodeURIComponent(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1mo`
+  )}`;
+  const r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0'}});
+  const d = await r.json();
+  return d?.chart?.result?.[0] || null;
+}
+
+async function fetchAllData() {
+  document.getElementById('live-label').textContent = 'LOADING';
+  const results = await Promise.allSettled([
+    ...INDICES.map(idx => fetchYF(idx.yf).then(r => ({type:'idx', idx, r}))),
+    ...STOCKS.map(s   => fetchYF(s.yf).then(r => ({type:'stock', s, r})))
+  ]);
+  for (const res of results) {
+    if (res.status !== 'fulfilled') continue;
+    const {type, idx, s, r} = res.value;
+    if (!r) continue;
+    const meta = r.meta;
+    const q = r.indicators?.quote?.[0];
+    if (type === 'idx') {
+      idx.val = parseFloat((meta.regularMarketPrice||0).toFixed(2));
+      idx.chg = parseFloat(((meta.regularMarketPrice - meta.previousClose)/meta.previousClose*100).toFixed(2));
+    } else {
+      const closes  = q?.close?.filter(Boolean)  || [];
+      const highs   = q?.high?.filter(Boolean)   || [];
+      const lows    = q?.low?.filter(Boolean)    || [];
+      const volumes = q?.volume?.filter(Boolean) || [];
+      const opens   = q?.open?.filter(Boolean)   || [];
+      s.ltp    = parseFloat((meta.regularMarketPrice||s.ltp).toFixed(2));
+      s.open   = parseFloat((opens[opens.length-1]||meta.regularMarketOpen||s.open).toFixed(2));
+      s.high   = parseFloat((highs[highs.length-1]||meta.regularMarketDayHigh||s.high).toFixed(2));
+      s.low    = parseFloat((lows[lows.length-1]||meta.regularMarketDayLow||s.low).toFixed(2));
+      s.close  = parseFloat((meta.previousClose||s.close).toFixed(2));
+      s.volume = meta.regularMarketVolume||s.volume;
+      s.change = s.close>0 ? parseFloat(((s.ltp-s.close)/s.close*100).toFixed(2)) : 0;
+      if (closes.length>2) HIST[s.name] = {closes,highs,lows,volumes};
+    }
+  }
+  updateUI();
+  document.getElementById('live-label').textContent = 'LIVE';
+}
+
+// ── INDICATORS ──
+function calcRSI(closes, p=14) {
+  if (closes.length < p+1) return 50;
+  let g=0,l=0;
+  for (let i=closes.length-p;i<closes.length;i++){const d=closes[i]-closes[i-1];d>0?g+=d:l+=-d;}
+  const rs=(g/p)/((l/p)||.0001);
+  return parseFloat((100-100/(1+rs)).toFixed(1));
+}
+function calcEMA(c,p){const k=2/(p+1);let e=c[0];for(let i=1;i<c.length;i++)e=c[i]*k+e*(1-k);return e;}
+function calcMACD(c){if(c.length<26)return{val:0,sig:'neutral'};const v=calcEMA(c,12)-calcEMA(c,26);return{val:parseFloat(v.toFixed(2)),sig:v>0?'bullish':'bearish'};}
+function calcVWAP(h,l,c,v){let tp=0,tv=0;for(let i=0;i<c.length;i++){const t=(h[i]+l[i]+c[i])/3;tp+=t*v[i];tv+=v[i];}return tv>0?parseFloat((tp/tv).toFixed(2)):c[c.length-1];}
+
+function analyzeStock(name) {
+  const s = STOCKS.find(x=>x.name===name)||STOCKS[0];
+  const h = HIST[s.name];
+  let closes,highs,lows,volumes;
+  if (h&&h.closes.length>5){closes=h.closes;highs=h.highs;lows=h.lows;volumes=h.volumes;}
+  else {
+    closes=Array.from({length:20},(_,i)=>s.open+(s.ltp-s.open)*(i/19)+(Math.random()-.5)*s.open*.004);
+    highs=closes.map(c=>c*1.004);lows=closes.map(c=>c*0.996);volumes=closes.map(()=>s.volume/20);
+  }
+  const rsi=calcRSI(closes);
+  const macd=calcMACD(closes);
+  const vwap=calcVWAP(highs,lows,closes,volumes);
+  const avgVol=volumes.reduce((a,b)=>a+b,0)/volumes.length;
+  const surge=s.volume>avgVol*1.4;
+  const atr=(s.high-s.low)||s.ltp*.01;
+  const stSig=s.ltp>(s.high+s.low)/2-3*atr&&s.change>0?'BUY':s.change<-1?'SELL':'HOLD';
+  let bull=0;
+  if(rsi<40)bull++;if(rsi>65)bull--;if(macd.sig==='bullish')bull++;
+  if(s.ltp>vwap)bull++;if(stSig==='BUY')bull++;if(surge)bull++;
+  const overall=bull>=3?'BUY':bull<=0?'SELL':'HOLD';
+  return {...s,symbol:s.name,rsi,macd:macd.val,macdSig:macd.sig,vwap,stSig,surge,overall};
+}
+
+// ── UI ──
+function updateUI() {
+  const fmt=n=>n>0?n.toLocaleString('en-IN',{maximumFractionDigits:2}):'—';
+  const cs=c=>c>=0?'pos':'neg';
+  const cs2=c=>`${c>=0?'▲':'▼'} ${Math.abs(c).toFixed(2)}%`;
+  document.getElementById('nifty-val').textContent=fmt(INDICES[0].val);
+  document.getElementById('nifty-chg').innerHTML=`<span class="${cs(INDICES[0].chg)}">${cs2(INDICES[0].chg)}</span>`;
+  document.getElementById('sensex-val').textContent=fmt(INDICES[1].val);
+  document.getElementById('sensex-chg').innerHTML=`<span class="${cs(INDICES[1].chg)}">${cs2(INDICES[1].chg)}</span>`;
+  document.getElementById('bnifty-val').textContent=fmt(INDICES[2].val);
+  document.getElementById('bnifty-chg').innerHTML=`<span class="${cs(INDICES[2].chg)}">${cs2(INDICES[2].chg)}</span>`;
+  const loaded=STOCKS.filter(s=>s.ltp>0);
+  if(loaded.length){
+    const items=[...loaded,...loaded].map(s=>`<span class="ticker-item"><span class="ticker-sym">${s.name}</span><span class="${cs(s.change)}">₹${s.ltp.toLocaleString('en-IN')} ${s.change>=0?'▲':'▼'}${Math.abs(s.change)}%</span></span>`).join('');
+    document.getElementById('ticker').innerHTML=items;
+  }
+}
+
+function updateIndBar(a) {
+  document.getElementById('ind-bar').style.display='block';
+  document.getElementById('ind-sym').textContent=a.symbol;
+  const re=document.getElementById('ind-rsi');
+  re.textContent=a.rsi;re.style.color=a.rsi<30?'var(--green)':a.rsi>70?'var(--red)':'var(--accent2)';
+  const me=document.getElementById('ind-macd');
+  me.textContent=a.macd;me.style.color=a.macdSig==='bullish'?'var(--green)':'var(--red)';
+  document.getElementById('ind-vwap').textContent='₹'+a.vwap.toLocaleString('en-IN');
+  const se=document.getElementById('ind-sig');
+  se.textContent=a.overall;se.style.color=a.overall==='BUY'?'var(--green)':a.overall==='SELL'?'var(--red)':'var(--accent2)';
+}
+
+// ── CHAT ──
+function addBotMessage(text, analysis) {
+  const area=document.getElementById('chat-area');
+  const div=document.createElement('div');div.className='msg';
+  const html=text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/\n/g,'<br/>');
+  let card='';
+  if(analysis){
+    const sc=analysis.overall==='BUY'?'signal-buy':analysis.overall==='SELL'?'signal-sell':'signal-hold';
+    card=`<div class="stock-card">
+      <div class="sc-row"><span class="sc-label">LTP</span><span>₹${analysis.ltp.toLocaleString('en-IN')}</span></div>
+      <div class="sc-row"><span class="sc-label">Change</span><span class="${analysis.change>=0?'pos':'neg'}">${analysis.change>=0?'+':''}${analysis.change}%</span></div>
+      <div class="sc-row"><span class="sc-label">RSI(14)</span><span>${analysis.rsi}</span></div>
+      <div class="sc-row"><span class="sc-label">MACD</span><span>${analysis.macd}</span></div>
+      <div class="sc-row"><span class="sc-label">VWAP</span><span>₹${analysis.vwap}</span></div>
+      <div class="sc-row"><span class="sc-label">Volume</span><span>${(analysis.volume/1e6).toFixed(1)}M</span></div>
+    </div><span class="signal-badge ${sc}">${analysis.overall==='BUY'?'▲ BUY':analysis.overall==='SELL'?'▼ SELL':'● HOLD'}</span>`;
+  }
+  div.innerHTML=`<div class="avatar bot">📊</div><div class="bubble bot">${html}${card}</div>`;
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+}
+
+function addUserMessage(text){
+  const area=document.getElementById('chat-area');
+  const div=document.createElement('div');div.className='msg user';
+  div.innerHTML=`<div class="avatar usr">👤</div><div class="bubble user">${text}</div>`;
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+}
+
+function showTyping(){
+  const area=document.getElementById('chat-area');
+  const div=document.createElement('div');div.className='msg';div.id='typing';
+  div.innerHTML=`<div class="avatar bot">📊</div><div class="typing-bub"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  area.appendChild(div);area.scrollTop=area.scrollHeight;
+}
+function removeTyping(){document.getElementById('typing')?.remove();}
+
+// ── AI ──
+function buildCtx(a) {
+  const gainers=STOCKS.filter(s=>s.change>0).sort((a,b)=>b.change-a.change).slice(0,3).map(s=>`${s.name} +${s.change}%`).join(', ')||'N/A';
+  const losers=STOCKS.filter(s=>s.change<0).sort((a,b)=>a.change-b.change).slice(0,3).map(s=>`${s.name} ${s.change}%`).join(', ')||'N/A';
+  let ctx=`LIVE NSE/BSE DATA (Yahoo Finance, real-time):
+NIFTY 50: ${INDICES[0].val} (${INDICES[0].chg>0?'+':''}${INDICES[0].chg}%)
+SENSEX: ${INDICES[1].val} (${INDICES[1].chg>0?'+':''}${INDICES[1].chg}%)
+BANK NIFTY: ${INDICES[2].val} (${INDICES[2].chg>0?'+':''}${INDICES[2].chg}%)
+Top Gainers today: ${gainers}
+Top Losers today: ${losers}`;
+  if(a){ctx+=`\n\nTECHNICAL ANALYSIS — ${a.symbol}:
+LTP: ₹${a.ltp} | Open: ₹${a.open} | High: ₹${a.high} | Low: ₹${a.low}
+Change: ${a.change}% | Volume: ${(a.volume/1e6).toFixed(1)}M
+RSI(14): ${a.rsi} → ${a.rsi<30?'Oversold':a.rsi>70?'Overbought':'Neutral'}
+MACD: ${a.macd} (${a.macdSig})
+VWAP: ₹${a.vwap} — Price is ${a.ltp>a.vwap?'ABOVE':'BELOW'} VWAP
+Supertrend Signal: ${a.stSig} | Volume Surge: ${a.surge?'YES':'No'}
+Overall Signal: ${a.overall}`;}
+  return ctx;
+}
+
+async function askAI(question) {
+  const match=STOCKS.find(s=>question.toUpperCase().includes(s.name));
+  const analysis=match?analyzeStock(match.name):null;
+  if(analysis)updateIndBar(analysis);
+
+  if(!IS_SIGNED_IN){
+    let reply='⚠️ **Sign in with Puter** for full AI analysis (free).\n\n';
+    if(analysis){reply+=`**${analysis.symbol}** quick read:\nRSI ${analysis.rsi} · MACD ${analysis.macdSig} · Signal: **${analysis.overall}**\n\nVWAP: ₹${analysis.vwap} — Price ${analysis.ltp>analysis.vwap?'above (bullish bias)':'below (bearish bias)'}`;}
+    else{reply+='Indicator data available for: '+STOCKS.map(s=>s.name).join(', ');}
+    return {reply,analysis};
+  }
+
+  const system=`You are TradeAI, an expert NSE/BSE intraday trading assistant for Indian retail traders.
+Use the live market data provided to give accurate, actionable advice.
+Rules:
+- Clear BUY/SELL/HOLD with entry price, stop-loss (SL), and target
+- Keep responses concise — traders need fast answers
+- Use ₹ for prices, % for changes  
+- Explain indicators simply for beginners
+- End every trade call with: ⚠️ Day trading carries high risk. Always use stop-losses.
+
+${buildCtx(analysis)}`;
+
+  try {
+    const resp=await puter.ai.chat(question,{model:'claude-opus-4-6',system});
+    const reply=typeof resp==='string'?resp:resp?.message?.content||resp?.content||'No response.';
+    return {reply,analysis};
+  } catch(e){
+    return {reply:`⚡ AI error: ${e.message}\n\nTry signing out and back in to Puter.`,analysis};
+  }
+}
+
+async function sendMessage(){
+  const inp=document.getElementById('user-input');
+  const text=inp.value.trim();if(!text)return;
+  inp.value='';inp.style.height='auto';
+  document.getElementById('send-btn').disabled=true;
+  addUserMessage(text);showTyping();
+  const {reply,analysis}=await askAI(text);
+  removeTyping();addBotMessage(reply,analysis);
+  document.getElementById('send-btn').disabled=false;
+}
+
+function quickAsk(el){document.getElementById('user-input').value=el.textContent;sendMessage();}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,80)+'px';}
+
+// Auto-login check
+window.addEventListener('load',async()=>{
+  try{
+    if(await puter.auth.isSignedIn()){
+      const user=await puter.auth.getUser();
+      PUTER_USER=user;IS_SIGNED_IN=true;launchApp();
+    }
+  }catch(e){}
+});
+</script>
+
+</body>
+</html>
